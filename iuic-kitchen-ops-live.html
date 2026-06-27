@@ -279,6 +279,11 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 
 <!-- DASHBOARD -->
 <div class="page active" id="pg-dash">
+  <!-- Firebase warning — hidden by default -->
+  <div id="firebase-warn" style="display:none;background:rgba(224,80,80,.15);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;">
+    <div style="font-weight:700;color:var(--red);margin-bottom:4px;">⚠ Firebase Not Connected</div>
+    <div style="color:var(--text);">Your database rules may have expired. Go to <b>console.firebase.google.com</b> → Realtime Database → Rules and set both <b>.read</b> and <b>.write</b> to <b>true</b>, then refresh this page.</div>
+  </div>
   <div class="flex-b">
     <div>
       <div class="pg-title arch">Master Dashboard</div>
@@ -681,33 +686,44 @@ function showStatus(msg,color){
 }
 
 function startLiveSync(){
-  // 1. Initial load via REST GET
+  var _loadTimeout=setTimeout(function(){
+    var ov=document.getElementById('loading-overlay');
+    if(ov&&ov.style.display!=='none'){
+      ov.style.display='none';
+      try{reRenderActive();}catch(e){console.warn('Render error:',e);}
+      showStatus('⚠ Timeout','red');
+    }
+  },8000);
+
   fetch(FB_URL+'.json')
-    .then(function(r){return r.json();})
+    .then(function(r){
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
     .then(function(remote){
-      if(!remote){
-        // First ever launch — seed defaults
-        S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
-        S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
-        fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
-      } else {
-        applyRemote(remote);
-      }
-      reRenderActive();
+      clearTimeout(_loadTimeout);
+      try{
+        if(!remote){
+          S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
+          S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
+          fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+        } else {
+          applyRemote(remote);
+        }
+        reRenderActive();
+      }catch(e){console.warn('Render error after load:',e);}
       var ov=document.getElementById('loading-overlay');
       if(ov)ov.style.display='none';
       showStatus('🟢 Live','green');
-      // 2. Start SSE stream for real-time pushes
       startSSE();
     })
     .catch(function(e){
-      console.warn('Initial load failed:',e);
-      // Fall back to localStorage
-      try{var d=localStorage.getItem('iuic-kos3');if(d){var p=JSON.parse(d);applyRemote(p);}}catch(x){}
-      reRenderActive();
+      clearTimeout(_loadTimeout);
+      console.warn('Load failed:',e);
+      try{reRenderActive();}catch(x){}
       var ov=document.getElementById('loading-overlay');
       if(ov)ov.style.display='none';
-      showStatus('⚠ Offline — local only','red');
+      showStatus('⚠ Error','red');
     });
 }
 
