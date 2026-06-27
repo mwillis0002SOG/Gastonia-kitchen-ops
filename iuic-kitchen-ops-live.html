@@ -550,20 +550,47 @@ var TEAM_CFG = {
   },
   clean:{label:'Cleaning',emoji:'🧹',
     roles:[
-      {key:'cl1-lead',lbl:'Session 1 Lead',desc:'After cold foods — by 2:30 PM'},
-      {key:'cl1-surf',lbl:'Surfaces — Sess 1',desc:''},
-      {key:'cl1-floor',lbl:'Floors — Sess 1',desc:''},
-      {key:'cl1-trash',lbl:'Trash/Dishes — Sess 1',desc:''},
-      {key:'cl2-lead',lbl:'Session 2 Lead',desc:'After sale close'},
-      {key:'cl2-equip',lbl:'Equipment — Sess 2',desc:''},
-      {key:'cl2-floor',lbl:'Floors — Sess 2',desc:''},
-      {key:'cl2-trash',lbl:'Trash/Lockdown — Sess 2',desc:''},
+      {key:'cl-coord',lbl:'Coordinator',desc:'Team lead'},
+      {key:'cl-wash1',lbl:'Wash 1',desc:'Washing dishes'},
+      {key:'cl-wash2',lbl:'Wash 2',desc:'Washing dishes'},
+      {key:'cl-rinse1',lbl:'Rinse 1',desc:'Rinsing dishes'},
+      {key:'cl-rinse2',lbl:'Rinse 2',desc:'Rinsing dishes'},
+      {key:'cl-dry1',lbl:'Dry 1',desc:'Drying dishes'},
+      {key:'cl-dry2',lbl:'Dry 2',desc:'Drying dishes'},
+      {key:'cl-silverfridge',lbl:'Silver Fridge Wipe Down',desc:'Wipe down silver fridge'},
+      {key:'cl-bevcooler',lbl:'Beverage Cooler',desc:'Clean beverage cooler'},
+      {key:'cl-surfaces',lbl:'Surfaces / Big Fridge',desc:'Wipe surfaces and big fridge'},
+      {key:'cl-towels',lbl:'Dirty Towels',desc:'Collect and handle dirty towels'},
     ],
-    tl:[{t:'2:30 PM',w:'Session 1: Reset after cold foods'},{t:'Close',w:'Session 2: Full lockdown'}],
-    cl:['All surfaces wiped','Floors swept and mopped','Trash removed','Equipment stored','Coordinator signed off']
+    tl:[{t:'During',w:'Wash, rinse, dry rotation throughout service'},{t:'2:30 PM',w:'Silver fridge and beverage cooler wipe down'},{t:'Close',w:'Surfaces, big fridge, towels — full lockdown'}],
+    cl:['All dishes washed, rinsed, and dried','Silver fridge wiped down','Beverage cooler cleaned','Surfaces and big fridge wiped','Dirty towels collected','Coordinator signed off']
   }
 };
 
+// Hot Foods — fixed stations with named slots
+var HOT_STATIONS=[
+  {key:'hot-opt1', label:'Hot Foods Server Option 1', slots:[
+    {k:'hot-opt1-s1',l:'Server 1'},
+    {k:'hot-opt1-s2',l:'Server 2'},
+  ]},
+  {key:'hot-opt2', label:'Hot Foods Server Option 2', slots:[
+    {k:'hot-opt2-s1',l:'Server 1'},
+    {k:'hot-opt2-s2',l:'Server 2'},
+  ]},
+  {key:'hot-alac', label:'À La Carte Option 1', slots:[
+    {k:'hot-alac-s1',l:'Server 1'},
+    {k:'hot-alac-s2',l:'Server 2'},
+  ]},
+  {key:'hot-door', label:'Door Expeditor', slots:[
+    {k:'hot-door-1',l:'Expeditor'},
+  ]},
+  {key:'hot-run', label:'Runners', slots:[
+    {k:'hot-run-1',l:'Runner 1'},
+    {k:'hot-run-2',l:'Runner 2'},
+    {k:'hot-run-3',l:'Runner 3'},
+  ]},
+];
+// Legacy — keep for any old meal station data
 var HOT_ROLES=[{k:'prep',l:'Prep Lead'},{k:'s1',l:'Server 1'},{k:'s2',l:'Server 2'},{k:'run',l:'Runner'}];
 
 var DEFAULT_TASKS=[
@@ -582,12 +609,13 @@ var DEFAULT_TASKS=[
 var S = {
   staff:[],          // [{id,name,team,avail}]
   assign:{},         // {roleKey: staffId}
-  meals:[],          // [{id,name,assign:{prep,s1,s2,run}}]
+  meals:[],          // legacy
   tasks:[],          // [{id,name,worker,time,done}]
   done:{},           // {teamKey: bool}
   notes:{},          // {teamKey: str}
   chk:{},            // {key: bool}
-  fields:{}          // {fieldId: str}
+  fields:{},         // {fieldId: str}
+  extras:{}          // {teamKey: [{id,label,assignId}]}
 };
 
 // ══════════════════════════════════════════════════════════
@@ -623,6 +651,7 @@ function applyRemote(remote){
   S.notes=remote.notes||{};
   S.chk=remote.chk||{};
   S.fields=remote.fields||{};
+  S.extras=remote.extras||{};
   return true;
 }
 
@@ -771,6 +800,10 @@ function assignedIds(){
   var out={};
   Object.values(S.assign).forEach(function(id){if(id)out[id]=true;});
   S.meals.forEach(function(m){if(m.assign)Object.values(m.assign).forEach(function(id){if(id)out[id]=true;});});
+  // Include extras assignments
+  Object.values(S.extras||{}).forEach(function(arr){
+    (arr||[]).forEach(function(ex){if(ex.assignId)out[ex.assignId]=true;});
+  });
   return out;
 }
 
@@ -985,6 +1018,9 @@ function renderTeam(tk){
     ch+='</ul>';c4.innerHTML=ch;el.appendChild(c4);
   }
 
+  // Custom extra positions
+  renderExtras(tk, el);
+
   // Done toggle
   var cd=document.createElement('div');
   cd.className='done-toggle'+(isDone?' is-done':'');
@@ -1031,53 +1067,54 @@ function setDone(tk,val){
 }
 
 // ══════════════════════════════════════════════════════════
-// HOT FOODS
+// HOT FOODS — fixed stations + custom extras
 // ══════════════════════════════════════════════════════════
 function renderHot(){
   var el=document.getElementById('team-hot');
   if(!el)return;
   el.innerHTML='';
+  var isDone=S.done.hot||false;
 
-  // Coord + notes
-  var cn=document.createElement('div');cn.className='card';
+  // Notes
+  var c1=document.createElement('div');c1.className='card';
+  c1.innerHTML='<div class="card-title">Coordinator Notes</div>'+
+    '<textarea class="notes-ta" placeholder="Hot foods reminders, special instructions…" onchange="S.notes.hot=this.value;save()">'+esc(S.notes.hot||'')+'</textarea>';
+  el.appendChild(c1);
+
+  // Coordinator
+  var c2=document.createElement('div');c2.className='card';
   var cur=S.assign['hot-coord']||'';
-  cn.innerHTML='<div class="card-title">Team Info</div>'+
-    '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Coordinator</div>'+
-    '<select onchange="setAsgnHotCoord(this.value,this)">'+buildOpts(cur)+'</select></div>'+
-    '<div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Notes</div>'+
-    '<textarea class="notes-ta" placeholder="Hot foods notes…" onchange="S.notes.hot=this.value;save()">'+esc(S.notes.hot||'')+'</textarea></div>';
-  el.appendChild(cn);
-  cn.querySelector('select').className='';colorSel(cn.querySelector('select'));
+  c2.innerHTML='<div class="card-title">Coordinator</div>'+
+    '<table class="asgn-tbl"><thead><tr><th>Position</th><th>Assigned Worker</th></tr></thead><tbody>'+
+    '<tr><td><div class="role-lbl">Hot Foods Coordinator</div><div class="role-desc">Team lead</div></td>'+
+    '<td><select onchange="setAsgnHotCoord(this.value,this)">'+buildOpts(cur)+'</select></td></tr>'+
+    '</tbody></table>';
+  el.appendChild(c2);
+  c2.querySelectorAll('select').forEach(colorSel);
 
-  // Empty state
-  if(S.meals.length===0){
-    var em=document.createElement('div');em.className='card';
-    em.style.cssText='text-align:center;padding:28px;color:var(--muted);';
-    em.innerHTML='<div style="font-size:28px;margin-bottom:6px;">🍗</div><div style="font-weight:600;">No meal stations yet</div><div style="font-size:12px;margin-top:4px;">Click "+ Add Meal" above to create your first station.</div>';
-    el.appendChild(em);
-  }
-
-  S.meals.forEach(function(m){
-    var asgn=HOT_ROLES.filter(function(r){return m.assign&&m.assign[r.k];}).length;
-    var div=document.createElement('div');div.className='ms-wrap';
-    var h='<div class="ms-head">'+
-      '<input class="ms-name-input" type="text" value="'+esc(m.name)+'" placeholder="Meal name (e.g. Dominican Chicken)" onblur="updateMealName(\''+m.id+'\',this.value)">'+
-      '<div class="flex-g"><span style="font-size:11px;color:var(--muted);">'+asgn+'/'+HOT_ROLES.length+' assigned</span>'+
-      '<button class="btn btn-danger" onclick="removeMeal(\''+m.id+'\')">Remove</button></div></div>'+
-      '<table class="asgn-tbl"><thead><tr><th>Role</th><th>Worker</th></tr></thead><tbody>';
-    HOT_ROLES.forEach(function(r){
-      var c=(m.assign&&m.assign[r.k])||'';
-      h+='<tr><td class="role-lbl">'+r.l+'</td><td><select onchange="setMealAsgn(\''+m.id+'\',\''+r.k+'\',this.value,this)">'+buildOpts(c)+'</select></td></tr>';
+  // Fixed stations
+  HOT_STATIONS.forEach(function(station){
+    var asgnCount=station.slots.filter(function(sl){return !!S.assign[sl.k];}).length;
+    var sc=document.createElement('div');sc.className='card';
+    var sh='<div class="card-title">'+station.label+' — '+asgnCount+'/'+station.slots.length+' Assigned</div>'+
+      '<table class="asgn-tbl"><thead><tr><th>Role</th><th>Assigned Worker</th></tr></thead><tbody>';
+    station.slots.forEach(function(sl){
+      var cv=S.assign[sl.k]||'';
+      sh+='<tr><td class="role-lbl">'+sl.l+'</td>'+
+          '<td><select onchange="setAsgnSlot(\''+sl.k+'\',this.value,this)">'+buildOpts(cv)+'</select></td></tr>';
     });
-    h+='</tbody></table>';
-    div.innerHTML=h;el.appendChild(div);
-    div.querySelectorAll('select').forEach(colorSel);
+    sh+='</tbody></table>';
+    sc.innerHTML=sh;el.appendChild(sc);
+    sc.querySelectorAll('select').forEach(colorSel);
   });
+
+  // Custom extra positions for hot team
+  renderExtras('hot', el);
 
   // Checklist
   var ckItems=['All protein pre-prepped or marinated','Cook stations set up and clean','Holding equipment ready (140°F+)','Serving utensils in place','Food labeled with name and time'];
   var c4=document.createElement('div');c4.className='card';
-  var ch='<div class="card-title">Hot Foods Checklist</div><ul class="chk-list">';
+  var ch='<div class="card-title">Readiness Checklist</div><ul class="chk-list">';
   ckItems.forEach(function(item,i){
     var k='hot-cl-'+i;var ck=S.chk[k]||false;
     ch+='<li class="'+(ck?'chk-done':'')+'" id="ci-'+k+'"><input type="checkbox" '+(ck?'checked':'')+' onchange="toggleChk(\''+k+'\',this)">'+item+'</li>';
@@ -1085,7 +1122,6 @@ function renderHot(){
   ch+='</ul>';c4.innerHTML=ch;el.appendChild(c4);
 
   // Done toggle
-  var isDone=S.done.hot||false;
   var cd=document.createElement('div');
   cd.className='done-toggle'+(isDone?' is-done':'');
   cd.id='dt-hot';
@@ -1094,7 +1130,76 @@ function renderHot(){
   el.appendChild(cd);
 }
 
-function setAsgnHotCoord(staffId,sel){
+function setAsgnSlot(roleKey, staffId, sel){
+  S.assign[roleKey]=staffId||'';
+  save();
+  colorSel(sel);
+  var tbody=document.getElementById('staff-tbody');
+  if(tbody&&tbody.closest('.page.active')){renderStaffTable();}
+  renderDash();updateBadges();
+}
+
+// ── CUSTOM EXTRA POSITIONS (per team) ──
+function renderExtras(tk, parentEl){
+  var extras=S.extras[tk]||[];
+  var card=document.createElement('div');card.className='card';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
+    '<div class="card-title" style="margin-bottom:0;">Additional Positions</div>'+
+    '<button class="btn btn-gold btn-sm" onclick="addExtra(\''+tk+'\')">+ Add Position</button>'+
+  '</div>';
+  if(!extras.length){
+    h+='<div style="color:var(--muted);font-size:12px;padding:6px 0;">No additional positions. Tap "+ Add Position" to create one.</div>';
+  } else {
+    h+='<table class="asgn-tbl"><thead><tr><th>Position Name</th><th>Assigned Worker</th><th style="width:36px;"></th></tr></thead><tbody>';
+    extras.forEach(function(ex){
+      h+='<tr>'+
+        '<td><input type="text" value="'+esc(ex.label)+'" placeholder="Position name" onblur="updateExtraLabel(\''+tk+'\',\''+ex.id+'\',this.value)" '+
+        'style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--white);font-size:13px;font-weight:600;width:100%;padding:2px 0;"></td>'+
+        '<td><select onchange="setExtraAsgn(\''+tk+'\',\''+ex.id+'\',this.value,this)">'+buildOpts(ex.assignId||'')+'</select></td>'+
+        '<td><button class="rm-btn" onclick="removeExtra(\''+tk+'\',\''+ex.id+'\')">✕</button></td>'+
+      '</tr>';
+    });
+    h+='</tbody></table>';
+  }
+  card.innerHTML=h;
+  parentEl.appendChild(card);
+  card.querySelectorAll('select').forEach(colorSel);
+}
+
+function addExtra(tk){
+  if(!S.extras[tk]) S.extras[tk]=[];
+  S.extras[tk].push({id:uid(),label:'',assignId:''});
+  save();
+  // Re-render current team page
+  if(tk==='hot') renderHot();
+  else renderTeam(tk);
+}
+
+function removeExtra(tk,exId){
+  if(!S.extras[tk]) return;
+  S.extras[tk]=S.extras[tk].filter(function(e){return e.id!==exId;});
+  save();
+  if(tk==='hot') renderHot();
+  else renderTeam(tk);
+}
+
+function updateExtraLabel(tk,exId,val){
+  if(!S.extras[tk]) return;
+  var ex=S.extras[tk].find(function(e){return e.id===exId;});
+  if(ex){ex.label=val;save();}
+}
+
+function setExtraAsgn(tk,exId,staffId,sel){
+  if(!S.extras[tk]) return;
+  var ex=S.extras[tk].find(function(e){return e.id===exId;});
+  if(ex){
+    ex.assignId=staffId||'';save();
+    colorSel(sel);
+    var tbody=document.getElementById('staff-tbody');
+    if(tbody&&tbody.closest('.page.active')){renderStaffTable();}
+    renderDash();updateBadges();
+  }
+}
   S.assign['hot-coord']=staffId||'';save();colorSel(sel);
   var tbody=document.getElementById('staff-tbody');
   if(tbody&&tbody.closest('.page.active')){renderStaffTable();}
@@ -1343,23 +1448,68 @@ function renderSummary(){
     }
   }
 
-  // ── Full Staff List: sorted green → yellow → red ──
+  // ── Full Staff List: sorted green → yellow → red, with all roles ──
   var sf=document.getElementById('sum-staff');
   if(sf){sf.innerHTML='';
     if(!S.staff.length){sf.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0;">No workers in database.</div>';return;}
+
+    // Build a map of staffId → list of role strings
+    var roleMap={};
+    // Standard team roles
+    Object.keys(TEAM_CFG).forEach(function(tk){
+      TEAM_CFG[tk].roles.forEach(function(r){
+        var sid=S.assign[r.key];
+        if(sid){
+          if(!roleMap[sid])roleMap[sid]=[];
+          roleMap[sid].push(TEAM_CFG[tk].label+' — '+r.lbl);
+        }
+      });
+    });
+    // Hot Foods coordinator
+    if(S.assign['hot-coord']){
+      var hcs=S.assign['hot-coord'];
+      if(!roleMap[hcs])roleMap[hcs]=[];
+      roleMap[hcs].push('Hot Foods — Coordinator');
+    }
+    // Hot Foods fixed stations
+    HOT_STATIONS.forEach(function(station){
+      station.slots.forEach(function(sl){
+        var sid=S.assign[sl.k];
+        if(sid){
+          if(!roleMap[sid])roleMap[sid]=[];
+          roleMap[sid].push(station.label+' — '+sl.l);
+        }
+      });
+    });
+    // Extras
+    Object.keys(S.extras||{}).forEach(function(tk){
+      (S.extras[tk]||[]).forEach(function(ex){
+        if(ex.assignId){
+          if(!roleMap[ex.assignId])roleMap[ex.assignId]=[];
+          var teamLabel=TEAM_CFG[tk]?TEAM_CFG[tk].label:(tk==='hot'?'Hot Foods':tk);
+          roleMap[ex.assignId].push(teamLabel+' — '+(ex.label||'Custom Position'));
+        }
+      });
+    });
+
     var ids2=assignedIds();
-    // Sort: green first, yellow middle, red last
     var sorted=S.staff.slice().sort(function(a,b){
       function rank(s){return s.avail==='no'?2:ids2[s.id]?0:1;}
       return rank(a)-rank(b);
     });
     sorted.forEach(function(s){
       var d2=staffDot(s);
+      var roles=roleMap[s.id]||[];
       var div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(42,59,90,.4);font-size:13px;';
-      div.innerHTML='<span class="dot '+d2+'"></span>'+
-        '<span style="font-weight:600;flex:1;">'+esc(s.name)+'</span>'+
-        '<span class="badge '+(d2==='green'?'bg':d2==='red'?'br':'by')+'">'+(d2==='green'?'🟢 Assigned':d2==='red'?'🔴 Unavailable':'🟡 Available')+'</span>';
+      div.style.cssText='padding:8px 0;border-bottom:1px solid rgba(42,59,90,.4);';
+      var rolesHtml=roles.length
+        ? roles.map(function(r){return '<div style="font-size:11px;color:var(--green);margin-top:2px;">▸ '+esc(r)+'</div>';}).join('')
+        : (d2==='red'?'<div style="font-size:11px;color:var(--red);margin-top:2px;">Not available this week</div>':'<div style="font-size:11px;color:var(--yellow);margin-top:2px;">No assignment yet</div>');
+      div.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'+
+        '<span class="dot '+d2+'"></span>'+
+        '<span style="font-weight:600;font-size:13px;flex:1;">'+esc(s.name)+'</span>'+
+        '<span class="badge '+(d2==='green'?'bg':d2==='red'?'br':'by')+'">'+(d2==='green'?'🟢 Assigned':d2==='red'?'🔴 Out':'🟡 Available')+'</span>'+
+      '</div>'+rolesHtml;
       sf.appendChild(div);
     });
   }
@@ -1436,36 +1586,38 @@ function showWorkerModal(filter){
       var d=staffDot(s);
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(42,59,90,.5);';
-      // Find what position they're assigned to
-      var assignedTo='';
+      // Find ALL positions this person is assigned to
+      var allRoles=[];
       if(ids[s.id]){
-        // Search all roles
         Object.keys(S.assign).forEach(function(k){
           if(S.assign[k]===s.id){
-            // Find role label
-            var found=false;
             Object.keys(TEAM_CFG).forEach(function(tk){
               TEAM_CFG[tk].roles.forEach(function(r){
-                if(r.key===k){assignedTo=TEAM_CFG[tk].label+' — '+r.lbl;found=true;}
+                if(r.key===k)allRoles.push(TEAM_CFG[tk].label+' — '+r.lbl);
               });
             });
-            if(!found&&k==='hot-coord')assignedTo='Hot Foods — Coordinator';
-            if(!found){
-              S.meals.forEach(function(m){
-                HOT_ROLES.forEach(function(r){
-                  if(m.id+'-'+r.k===k||k===m.id+r.k)assignedTo='Hot Foods — '+r.l;
-                });
-              });
-            }
+            if(k==='hot-coord')allRoles.push('Hot Foods — Coordinator');
+            HOT_STATIONS.forEach(function(st){
+              st.slots.forEach(function(sl){if(sl.k===k)allRoles.push(st.label+' — '+sl.l);});
+            });
           }
         });
+        Object.keys(S.extras||{}).forEach(function(tk){
+          (S.extras[tk]||[]).forEach(function(ex){
+            if(ex.assignId===s.id){
+              var tl=TEAM_CFG[tk]?TEAM_CFG[tk].label:(tk==='hot'?'Hot Foods':tk);
+              allRoles.push(tl+' — '+(ex.label||'Custom Position'));
+            }
+          });
+        });
       }
+      var roleText=allRoles.length?allRoles.map(function(r){return '<div style="font-size:11px;color:var(--green);margin-top:1px;">▸ '+esc(r)+'</div>';}).join(''):
+        s.avail==='no'?'<div style="font-size:11px;color:var(--red);margin-top:1px;">Not available this week</div>':
+        '<div style="font-size:11px;color:var(--yellow);margin-top:1px;">No assignment yet</div>';
       row.innerHTML='<span class="dot '+d+'"></span>'+
         '<div style="flex:1;">'+
           '<div style="font-weight:600;font-size:13px;color:var(--white);">'+esc(s.name)+'</div>'+
-          (assignedTo?'<div style="font-size:11px;color:var(--green);margin-top:1px;">'+esc(assignedTo)+'</div>':
-           s.avail==='no'?'<div style="font-size:11px;color:var(--red);margin-top:1px;">Not available this week</div>':
-           '<div style="font-size:11px;color:var(--yellow);margin-top:1px;">No assignment yet</div>')+
+          roleText+
         '</div>';
       list.appendChild(row);
     });
