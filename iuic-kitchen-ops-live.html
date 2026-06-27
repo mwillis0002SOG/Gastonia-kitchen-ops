@@ -481,7 +481,9 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 <div id="loading-overlay" style="position:fixed;inset:0;background:#0F1A2E;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;">
   <div style="font-family:'Archivo',sans-serif;font-stretch:75%;font-size:18px;font-weight:800;color:#C9A227;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">IUIC Kitchen Ops</div>
   <div style="width:40px;height:40px;border:3px solid #2A3B5A;border-top-color:#C9A227;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-  <div style="margin-top:16px;font-size:13px;color:#7A8BAD;">Connecting to live database…</div>
+  <div id="load-status" style="margin-top:16px;font-size:13px;color:#7A8BAD;">Connecting to Firebase…</div>
+  <div id="load-error" style="margin-top:12px;font-size:12px;color:#E05050;max-width:300px;text-align:center;display:none;"></div>
+  <button onclick="forceShow()" style="margin-top:20px;background:#C9A227;color:#0F1A2E;border:none;border-radius:5px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer;">Skip & Enter App</button>
   <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 </div>
 
@@ -685,7 +687,24 @@ function showStatus(msg,color){
   el.style.color=color==='red'?'var(--red)':color==='green'?'var(--green)':'var(--muted)';
 }
 
+function forceShow(){
+  var ov=document.getElementById('loading-overlay');
+  if(ov)ov.style.display='none';
+  try{reRenderActive();}catch(e){}
+  showStatus('⚠ Manual override','red');
+}
+
+function setLoadStatus(msg, isError){
+  var el=document.getElementById('load-status');
+  if(el)el.textContent=msg;
+  if(isError){
+    var er=document.getElementById('load-error');
+    if(er){er.textContent=msg;er.style.display='block';}
+  }
+}
+
 function startLiveSync(){
+  setLoadStatus('Connecting to Firebase…');
   var _loadTimeout=setTimeout(function(){
     var ov=document.getElementById('loading-overlay');
     if(ov&&ov.style.display!=='none'){
@@ -693,17 +712,21 @@ function startLiveSync(){
       try{reRenderActive();}catch(e){console.warn('Render error:',e);}
       showStatus('⚠ Timeout','red');
     }
-  },8000);
+  },10000);
 
+  setLoadStatus('Fetching data…');
   fetch(FB_URL+'.json')
     .then(function(r){
+      setLoadStatus('Response received: HTTP '+r.status);
       if(!r.ok)throw new Error('HTTP '+r.status);
       return r.json();
     })
     .then(function(remote){
       clearTimeout(_loadTimeout);
+      setLoadStatus('Data loaded — rendering…');
       try{
         if(!remote){
+          setLoadStatus('Empty DB — seeding 42 workers…');
           S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
           S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
           fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
@@ -711,7 +734,10 @@ function startLiveSync(){
           applyRemote(remote);
         }
         reRenderActive();
-      }catch(e){console.warn('Render error after load:',e);}
+      }catch(e){
+        console.warn('Render error:',e);
+        setLoadStatus('Render error: '+e.message, true);
+      }
       var ov=document.getElementById('loading-overlay');
       if(ov)ov.style.display='none';
       showStatus('🟢 Live','green');
@@ -720,6 +746,7 @@ function startLiveSync(){
     .catch(function(e){
       clearTimeout(_loadTimeout);
       console.warn('Load failed:',e);
+      setLoadStatus('Error: '+e.message, true);
       try{reRenderActive();}catch(x){}
       var ov=document.getElementById('loading-overlay');
       if(ov)ov.style.display='none';
@@ -1056,7 +1083,12 @@ function setAsgn(tk, roleKey, staffId, sel){
     var asgn=cfg.roles.filter(function(r){return !!S.assign[r.key];}).length;
     var tot=cfg.roles.length;
     var el=document.getElementById('team-'+tk);
-    if(el){var ct=el.querySelector('.asgn-tbl')?.closest('.card')?.querySelector('.card-title');if(ct)ct.textContent='Positions — '+asgn+' / '+tot+' Assigned';}
+    if(el){
+      var asgnTbl=el.querySelector('.asgn-tbl');
+      var asgnCard=asgnTbl?asgnTbl.closest('.card'):null;
+      var ct=asgnCard?asgnCard.querySelector('.card-title'):null;
+      if(ct)ct.textContent='Positions — '+asgn+' / '+tot+' Assigned';
+    }
   }
   // Update dots in staff table if visible
   var tbody=document.getElementById('staff-tbody');
@@ -1232,7 +1264,8 @@ function setMealAsgn(msId,roleKey,staffId,sel){
   colorSel(sel);
   // Update assigned count label
   var asgn=HOT_ROLES.filter(function(r){return m.assign[r.k];}).length;
-  var head=sel.closest('.ms-wrap')?.querySelector('.ms-head span');
+  var msWrap=sel.closest('.ms-wrap');
+  var head=msWrap?msWrap.querySelector('.ms-head span'):null;
   if(head)head.textContent=asgn+'/'+HOT_ROLES.length+' assigned';
   var tbody=document.getElementById('staff-tbody');
   if(tbody&&tbody.closest('.page.active')){renderStaffTable();}
