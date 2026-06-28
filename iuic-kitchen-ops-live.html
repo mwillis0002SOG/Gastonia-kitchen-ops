@@ -263,7 +263,6 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   <button class="nav-btn active" id="nb-dash" onclick="go('pg-dash','nb-dash')"><span class="nav-icon">⚡</span>Dashboard</button>
   <button class="nav-btn" id="nb-summary" onclick="go('pg-summary','nb-summary')"><span class="nav-icon">📋</span>Summary</button>
   <button class="nav-btn" id="nb-staff" onclick="go('pg-staff','nb-staff')"><span class="nav-icon">👥</span>Staff Database</button>
-  <button class="nav-btn" id="nb-presab" onclick="go('pg-presab','nb-presab')"><span class="nav-icon">📅</span>Pre-Sabbath</button>
   <div class="nav-divider"></div>
   <div class="nav-label">Teams</div>
   <button class="nav-btn" id="nb-bread" onclick="go('pg-bread','nb-bread')"><span class="nav-icon">🥖</span>Bread<span class="nav-badge" id="bd-bread">—</span></button>
@@ -272,6 +271,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   <button class="nav-btn" id="nb-bev" onclick="go('pg-bev','nb-bev')"><span class="nav-icon">🥤</span>Beverage<span class="nav-badge" id="bd-bev">—</span></button>
   <button class="nav-btn" id="nb-lead" onclick="go('pg-lead','nb-lead')"><span class="nav-icon">🍽</span>Leadership<span class="nav-badge" id="bd-lead">—</span></button>
   <button class="nav-btn" id="nb-clean" onclick="go('pg-clean','nb-clean')"><span class="nav-icon">🧹</span>Cleaning<span class="nav-badge" id="bd-clean">—</span></button>
+  <button class="nav-btn" id="nb-grill" onclick="go('pg-grill','nb-grill')"><span class="nav-icon">🔥</span>Grill Team<span class="nav-badge" id="bd-grill">—</span></button>
 </nav>
 
 <!-- MAIN -->
@@ -346,21 +346,11 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   </div>
 </div>
 
-<!-- PRE-SABBATH -->
-<div class="page" id="pg-presab">
-  <div class="flex-b">
-    <div>
-      <div class="pg-title arch">Pre-Sabbath Preparation</div>
-      <div class="pg-sub">Friday tasks — assign a worker and set a due time.</div>
-    </div>
-    <button class="btn btn-gold" onclick="addPreTask()">+ Add Task</button>
-  </div>
-  <div class="card">
-    <div class="task-hdr">
-      <span>Task</span><span>Assigned To</span><span>Due Time</span><span></span>
-    </div>
-    <div id="pre-task-list"></div>
-  </div>
+<!-- GRILL TEAM -->
+<div class="page" id="pg-grill">
+  <div class="pg-title arch">🔥 Grill Team</div>
+  <div class="pg-sub">Post-Sabbath — after sundown. Men's team.</div>
+  <div id="team-grill"></div>
 </div>
 
 <!-- BREAD -->
@@ -435,10 +425,6 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Workers who are available but have no assignment this week.</div>
     <div id="sum-unassigned"></div>
   </div>
-  <div class="card" style="margin-bottom:10px;">
-    <div class="card-title">Pre-Sabbath Tasks</div>
-    <div id="sum-tasks"></div>
-  </div>
   <div class="card">
     <div class="card-title">Full Staff List</div>
     <div id="sum-staff"></div>
@@ -460,7 +446,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
     <button class="bnav-btn" id="bn-bev" onclick="go('pg-bev','nb-bev','bn-bev')"><span class="bi">🥤</span>Bev<span class="bnav-badge" id="bb-bev">—</span></button>
     <button class="bnav-btn" id="bn-lead" onclick="go('pg-lead','nb-lead','bn-lead')"><span class="bi">🍽</span>Lead<span class="bnav-badge" id="bb-lead">—</span></button>
     <button class="bnav-btn" id="bn-clean" onclick="go('pg-clean','nb-clean','bn-clean')"><span class="bi">🧹</span>Clean<span class="bnav-badge" id="bb-clean">—</span></button>
-    <button class="bnav-btn" id="bn-presab" onclick="go('pg-presab','nb-presab','bn-presab')"><span class="bi">📅</span>Prep</button>
+    <button class="bnav-btn" id="bn-grill" onclick="go('pg-grill','nb-grill','bn-grill')"><span class="bi">🔥</span>Grill<span class="bnav-badge" id="bb-grill">—</span></button>
     <button class="bnav-btn" id="bn-summary" onclick="go('pg-summary','nb-summary','bn-summary')"><span class="bi">📋</span>Summary</button>
   </div>
 </div>
@@ -571,6 +557,19 @@ var TEAM_CFG = {
     ],
     tl:[{t:'During',w:'Wash, rinse, dry rotation throughout service'},{t:'2:30 PM',w:'Silver fridge and beverage cooler wipe down'},{t:'Close',w:'Surfaces, big fridge, towels — full lockdown'}],
     cl:['All dishes washed, rinsed, and dried','Silver fridge wiped down','Beverage cooler cleaned','Surfaces and big fridge wiped','Dirty towels collected','Coordinator signed off']
+  },
+  grill:{label:'Grill Team',emoji:'🔥',
+    roles:[
+      {key:'grill-lead',lbl:'Grill Lead',desc:'Post-Sabbath team lead'},
+      {key:'grill-flat1',lbl:'Flat Top 1',desc:'Flat top grill station'},
+      {key:'grill-flat2',lbl:'Flat Top 2',desc:'Flat top grill station'},
+      {key:'grill-fry1',lbl:'Fry Station 1',desc:''},
+      {key:'grill-fry2',lbl:'Fry Station 2',desc:''},
+      {key:'grill-fry3',lbl:'Fry Station 3',desc:''},
+      {key:'grill-big',lbl:'Big Grill',desc:'Large outdoor grill'},
+    ],
+    tl:[{t:'Sundown',w:'Sabbath ends — team assembles'},{t:'Setup',w:'Fire up grills and stations'},{t:'Service',w:'Grill and serve'}],
+    cl:['All grills fired up and ready','Stations stocked with supplies','Food prepped and ready to grill','Cleanup plan confirmed']
   }
 };
 
@@ -614,15 +613,16 @@ var DEFAULT_TASKS=[
 // STATE
 // ══════════════════════════════════════════════════════════
 var S = {
-  staff:[],          // [{id,name,team,avail}]
-  assign:{},         // {roleKey: staffId}
-  meals:[],          // legacy
-  tasks:[],          // [{id,name,worker,time,done}]
-  done:{},           // {teamKey: bool}
-  notes:{},          // {teamKey: str}
-  chk:{},            // {key: bool}
-  fields:{},         // {fieldId: str}
-  extras:{}          // {teamKey: [{id,label,assignId}]}
+  staff:[],
+  assign:{},
+  meals:[],
+  tasks:[],
+  done:{},
+  notes:{},
+  chk:{},
+  fields:{},
+  extras:{},
+  stationNames:{}  // {stationKey: customDishName}
 };
 
 // ══════════════════════════════════════════════════════════
@@ -659,6 +659,7 @@ function applyRemote(remote){
   S.chk=remote.chk||{};
   S.fields=remote.fields||{};
   S.extras=remote.extras||{};
+  S.stationNames=remote.stationNames||{};
   return true;
 }
 
@@ -669,13 +670,13 @@ function reRenderActive(){
   if(ap){
     var id=ap.id;
     if(id==='pg-staff')renderStaffTable();
-    else if(id==='pg-presab')renderTasks();
     else if(id==='pg-bread')renderTeam('bread');
     else if(id==='pg-cold')renderTeam('cold');
     else if(id==='pg-hot')renderHot();
     else if(id==='pg-bev')renderTeam('bev');
     else if(id==='pg-lead')renderTeam('lead');
     else if(id==='pg-clean')renderTeam('clean');
+    else if(id==='pg-grill')renderTeam('grill');
     else if(id==='pg-summary')renderSummary();
   }
 }
@@ -818,6 +819,7 @@ function go(pageId, btnId, bnId){
   if(pageId==='pg-bev') renderTeam('bev');
   if(pageId==='pg-lead') renderTeam('lead');
   if(pageId==='pg-clean') renderTeam('clean');
+  if(pageId==='pg-grill') renderTeam('grill');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1144,7 +1146,19 @@ function renderHot(){
   HOT_STATIONS.forEach(function(station){
     var asgnCount=station.slots.filter(function(sl){return !!S.assign[sl.k];}).length;
     var sc=document.createElement('div');sc.className='card';
-    var sh='<div class="card-title">'+station.label+' — '+asgnCount+'/'+station.slots.length+' Assigned</div>'+
+    var hasDishName=station.key==='hot-opt1'||station.key==='hot-opt2'||station.key==='hot-alac';
+    var dishName=S.stationNames[station.key]||'';
+    var dishField=hasDishName
+      ?'<div style="margin-bottom:10px;">'+
+          '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Dish / Item Being Served</div>'+
+          '<input type="text" value="'+esc(dishName)+'" placeholder="Type dish here" '+
+          'onblur="setStationName(\''+station.key+'\',this.value)" '+
+          'style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--gold2);font-family:\'Inter\',sans-serif;font-weight:600;font-size:13px;padding:7px 10px;width:100%;">'+
+        '</div>'
+      :'';
+    var displayLabel=station.label+(dishName?' — '+dishName:'');
+    var sh='<div class="card-title">'+esc(displayLabel)+' <span style="font-weight:400;color:var(--muted);">'+asgnCount+'/'+station.slots.length+' assigned</span></div>'+
+      dishField+
       '<table class="asgn-tbl"><thead><tr><th>Role</th><th>Assigned Worker</th></tr></thead><tbody>';
     station.slots.forEach(function(sl){
       var cv=S.assign[sl.k]||'';
@@ -1247,6 +1261,13 @@ function setExtraAsgn(tk,exId,staffId,sel){
     if(tbody&&tbody.closest('.page.active')){renderStaffTable();}
     renderDash();updateBadges();
   }
+}
+
+function setStationName(stationKey, val){
+  S.stationNames[stationKey]=val;
+  save();
+  // Update card title live
+  renderHot();
 }
 
 function setAsgnHotCoord(staffId,sel){
@@ -1353,6 +1374,7 @@ function renderDash(){
     {key:'bev',lbl:'Beverage',em:'🥤',roles:TEAM_CFG.bev.roles},
     {key:'lead',lbl:'Leadership Meals',em:'🍽',roles:TEAM_CFG.lead.roles},
     {key:'clean',lbl:'Cleaning',em:'🧹',roles:TEAM_CFG.clean.roles},
+    {key:'grill',lbl:'Grill Team',em:'🔥',roles:TEAM_CFG.grill.roles},
   ];
   allTms.forEach(function(t){
     var roles=t.roles;
@@ -1388,7 +1410,7 @@ function renderDash(){
 }
 
 function updateBadges(){
-  var teams={bread:TEAM_CFG.bread.roles,cold:TEAM_CFG.cold.roles,bev:TEAM_CFG.bev.roles,lead:TEAM_CFG.lead.roles,clean:TEAM_CFG.clean.roles};
+  var teams={bread:TEAM_CFG.bread.roles,cold:TEAM_CFG.cold.roles,bev:TEAM_CFG.bev.roles,lead:TEAM_CFG.lead.roles,clean:TEAM_CFG.clean.roles,grill:TEAM_CFG.grill.roles};
   Object.keys(teams).forEach(function(tk){
     var bd=document.getElementById('bd-'+tk);
     var bb=document.getElementById('bb-'+tk);
@@ -1447,7 +1469,7 @@ function renderSummary(){
   // ── Team Status ──
   var te=document.getElementById('sum-teams');
   if(te){te.innerHTML='';
-    ['bread','cold','hot','bev','lead','clean'].forEach(function(tk){
+    ['bread','cold','hot','bev','lead','clean','grill'].forEach(function(tk){
       var cfg=TEAM_CFG[tk];var lbl=cfg?cfg.label:(tk==='hot'?'Hot Foods':tk);var em=cfg?cfg.emoji:'🍗';
       var isDone=S.done[tk]||false;
       var a=0,t=0;
@@ -1476,25 +1498,6 @@ function renderSummary(){
         d.innerHTML='<span class="dot yellow"></span><span style="font-weight:600;">'+esc(s.name)+'</span>'+
           '<span class="badge by" style="margin-left:auto;">No Assignment</span>';
         ua.appendChild(d);
-      });
-    }
-  }
-
-  // ── Pre-Sabbath Tasks ──
-  var tk2=document.getElementById('sum-tasks');
-  if(tk2){tk2.innerHTML='';
-    if(!S.tasks.length){tk2.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0;">No pre-sabbath tasks set.</div>';}
-    else{
-      var done=S.tasks.filter(function(t){return t.done;}).length;
-      tk2.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+done+' / '+S.tasks.length+' completed</div>';
-      S.tasks.forEach(function(t){
-        var w=S.staff.find(function(s){return s.id===t.worker;});
-        var wn=w?w.name:'Unassigned';
-        var d=document.createElement('div');
-        d.style.cssText='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(42,59,90,.4);font-size:13px;';
-        d.innerHTML='<span style="'+(t.done?'text-decoration:line-through;color:var(--muted)':'')+'">'+esc(t.name)+'</span>'+
-          '<span style="color:var(--muted);">'+esc(wn)+' · '+esc(t.time||'—')+'</span>';
-        tk2.appendChild(d);
       });
     }
   }
