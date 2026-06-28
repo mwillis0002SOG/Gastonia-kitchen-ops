@@ -890,7 +890,13 @@ function renderStaffTable(){
   var ids=assignedIds();
   tbody.innerHTML='';
   // Sort alphabetically by name
-  var sorted=S.staff.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  var sorted=S.staff.slice().sort(function(a,b){
+    function fn(name){
+      var n=name.replace(/^(Officer|Brother|Sister|Soldier|Captain|Bishop)\s+/i,'');
+      return n.split(' ')[0].toLowerCase();
+    }
+    return fn(a.name).localeCompare(fn(b.name));
+  });
   sorted.forEach(function(s,i){
     var dot=staffDot(s);
     var tr=document.createElement('tr');
@@ -986,9 +992,14 @@ function buildOpts(selId){
     return '<option value="'+s.id+'"'+(s.id===selId?' selected':'')+'>'+dot+' '+esc(s.name)+note+'</option>';
   }
 
-  green.sort(function(a,b){return a.name.localeCompare(b.name);});
-  yellow.sort(function(a,b){return a.name.localeCompare(b.name);});
-  red.sort(function(a,b){return a.name.localeCompare(b.name);});
+  function firstName(name){
+    // Strip rank titles then get first word
+    var n=name.replace(/^(Officer|Brother|Sister|Soldier|Captain|Bishop)\s+/i,'');
+    return n.split(' ')[0].toLowerCase();
+  }
+  green.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
+  yellow.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
+  red.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
 
   var h='<option value="">— Unassigned —</option>'+
         '<option value="__NA__"'+(selId==='__NA__'?' selected':'')+'>⬛ N/A — Not Needed This Week</option>';
