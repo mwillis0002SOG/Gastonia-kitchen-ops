@@ -199,7 +199,24 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 .flex-b{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .flex-g{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-/* ── TOAST ── */
+/* ── PIN MODAL ── */
+#pin-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+#pin-modal.show{display:flex;}
+.pin-box{background:var(--card);border:2px solid var(--gold);border-radius:16px;padding:28px 24px;width:300px;max-width:90vw;text-align:center;}
+.pin-title{font-family:'Archivo',sans-serif;font-stretch:75%;font-weight:800;font-size:16px;color:var(--white);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.pin-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:20px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border2);transition:background .15s;}
+.pin-dot.filled{background:var(--gold);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.pin-key{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--white);font-family:'Archivo',sans-serif;font-stretch:75%;font-weight:700;font-size:20px;padding:14px;cursor:pointer;transition:all .1s;}
+.pin-key:hover{background:var(--card2);border-color:var(--gold);}
+.pin-key.wide{grid-column:span 2;}
+.pin-error{color:var(--red);font-size:12px;font-weight:600;margin-top:-8px;margin-bottom:8px;min-height:16px;}
+.lock-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--muted);padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;font-family:'Archivo',sans-serif;font-stretch:75%;text-transform:uppercase;letter-spacing:.06em;transition:all .15s;}
+.lock-btn.unlocked{color:var(--green);border-color:var(--green);}
+.lock-btn:hover{border-color:var(--gold);color:var(--gold2);}
+
 #toast{position:fixed;bottom:70px;right:16px;background:var(--card2);border:1px solid var(--border2);color:var(--white);padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.5);}
 
 /* ── BOTTOM TAB BAR (mobile) ── */
@@ -249,6 +266,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
     </div>
     <div class="header-actions">
       <span id="sync-status" style="font-size:11px;font-weight:600;color:var(--muted);padding:0 4px;">Connecting…</span>
+      <button class="lock-btn" id="lock-btn" onclick="handleLockBtn()">🔒 Locked</button>
       <button class="btn btn-gold" onclick="downloadFilled()">⬇ Save Copy</button>
       <button class="btn btn-ghost" onclick="clearWeek()">New Week</button>
     </div>
@@ -463,6 +481,35 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   </div>
 </div>
 
+<!-- PIN MODAL -->
+<div id="pin-modal">
+  <div class="pin-box">
+    <div class="pin-title">🔐 Enter PIN to Edit</div>
+    <div class="pin-sub">View is always free. PIN required to make changes.</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" onclick="pinKey('back')">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="closePinModal()">✕</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="position:fixed;inset:0;background:#0F1A2E;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;">
   <div style="font-family:'Archivo',sans-serif;font-stretch:75%;font-size:18px;font-weight:800;color:#C9A227;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;">IUIC Kitchen Ops</div>
@@ -634,15 +681,17 @@ var _sseSource=null;
 
 function uid(){return 's'+Math.random().toString(36).slice(2,9);}
 
-// Debounced save — writes full state via REST PUT
 function save(){
+  if(!_pinUnlocked){
+    toast('🔒 Enter PIN to make changes');
+    openPinModal();
+    return;
+  }
+  resetAutoLock();
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
-    fetch(FB_URL+'.json',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(S)
-    }).catch(function(e){console.warn('Save error:',e);showStatus('⚠ Save failed — check connection','red');});
+    fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)})
+      .catch(function(e){console.warn('Save error:',e);showStatus('⚠ Save failed','red');});
   },700);
 }
 
@@ -735,6 +784,7 @@ function startLiveSync(){
           applyRemote(remote);
         }
         reRenderActive();
+        if(!_pinUnlocked) setTimeout(disableEditing,150);
       }catch(e){
         console.warn('Render error:',e);
         setLoadStatus('Render error: '+e.message, true);
@@ -820,6 +870,7 @@ function go(pageId, btnId, bnId){
   if(pageId==='pg-lead') renderTeam('lead');
   if(pageId==='pg-clean') renderTeam('clean');
   if(pageId==='pg-grill') renderTeam('grill');
+  if(!_pinUnlocked) setTimeout(disableEditing,100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1727,7 +1778,147 @@ function closeWorkerModal(){
   document.getElementById('worker-modal').style.display='none';
   document.body.style.overflow='';
 }
+// ══════════════════════════════════════════════════════════
+// PIN SYSTEM
+// ══════════════════════════════════════════════════════════
+var EDIT_PIN='2003';
+var _pinUnlocked=false;
+var _pinEntry='';
+var _pinTimeout=null;
+
+function isUnlocked(){return _pinUnlocked;}
+
+function handleLockBtn(){
+  if(_pinUnlocked){
+    // Lock it
+    _pinUnlocked=false;
+    _pinEntry='';
+    updateLockUI();
+    disableEditing();
+    toast('🔒 Locked');
+  } else {
+    openPinModal();
+  }
+}
+
+function openPinModal(){
+  _pinEntry='';
+  updatePinDots();
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-modal').classList.add('show');
+}
+
+function closePinModal(){
+  document.getElementById('pin-modal').classList.remove('show');
+  _pinEntry='';
+  updatePinDots();
+}
+
+function pinKey(k){
+  if(k==='back'){
+    _pinEntry=_pinEntry.slice(0,-1);
+    updatePinDots();
+    document.getElementById('pin-error').textContent='';
+    return;
+  }
+  if(_pinEntry.length>=4) return;
+  _pinEntry+=k;
+  updatePinDots();
+  if(_pinEntry.length===4){
+    setTimeout(function(){checkPin();},120);
+  }
+}
+
+function updatePinDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('pd'+i);
+    if(d) d.className='pin-dot'+(i<_pinEntry.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  if(_pinEntry===EDIT_PIN){
+    _pinUnlocked=true;
+    closePinModal();
+    updateLockUI();
+    enableEditing();
+    toast('🔓 Unlocked — editing enabled');
+    // Auto-lock after 15 minutes of inactivity
+    resetAutoLock();
+  } else {
+    document.getElementById('pin-error').textContent='Incorrect PIN — try again';
+    _pinEntry='';
+    updatePinDots();
+  }
+}
+
+function updateLockUI(){
+  var btn=document.getElementById('lock-btn');
+  if(!btn) return;
+  if(_pinUnlocked){
+    btn.textContent='🔓 Unlocked';
+    btn.className='lock-btn unlocked';
+  } else {
+    btn.textContent='🔒 Locked';
+    btn.className='lock-btn';
+  }
+}
+
+function resetAutoLock(){
+  clearTimeout(_pinTimeout);
+  _pinTimeout=setTimeout(function(){
+    if(_pinUnlocked){
+      _pinUnlocked=false;
+      updateLockUI();
+      disableEditing();
+      toast('🔒 Auto-locked after 15 minutes');
+    }
+  },15*60*1000);
+}
+
+function disableEditing(){
+  // Disable all selects and inputs except PIN modal and header fields
+  document.querySelectorAll('.asgn-tbl select, .stbl select, .notes-ta, .done-toggle input, .chk-list input').forEach(function(el){
+    el.disabled=true;
+    el.style.opacity='0.5';
+    el.style.cursor='not-allowed';
+  });
+  document.querySelectorAll('.btn-gold, .btn-danger, .rm-btn').forEach(function(el){
+    if(el.id!=='lock-btn'){el.disabled=true;el.style.opacity='0.4';}
+  });
+}
+
+function enableEditing(){
+  document.querySelectorAll('.asgn-tbl select, .stbl select, .notes-ta, .done-toggle input, .chk-list input').forEach(function(el){
+    el.disabled=false;
+    el.style.opacity='';
+    el.style.cursor='';
+  });
+  document.querySelectorAll('.btn-gold, .btn-danger, .rm-btn').forEach(function(el){
+    el.disabled=false;el.style.opacity='';
+  });
+}
+
+// Intercept all save attempts — block if locked
+var _origSave=null;
+function guardedSave(){
+  if(!_pinUnlocked){
+    toast('🔒 Enter PIN to make changes');
+    openPinModal();
+    return;
+  }
+  resetAutoLock();
+  // Call original save
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(function(){
+    fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)})
+      .catch(function(e){console.warn('Save error:',e);});
+  },700);
+}
+
 function init(){
+  _pinUnlocked=false;
+  updateLockUI();
   startLiveSync();
 }
 
