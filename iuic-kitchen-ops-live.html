@@ -262,7 +262,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   <div class="nav-label">Overview</div>
   <button class="nav-btn active" id="nb-dash" onclick="go('pg-dash','nb-dash')"><span class="nav-icon">⚡</span>Dashboard</button>
   <button class="nav-btn" id="nb-summary" onclick="go('pg-summary','nb-summary')"><span class="nav-icon">📋</span>Summary</button>
-  <button class="nav-btn" id="nb-staff" onclick="go('pg-staff','nb-staff')"><span class="nav-icon">👥</span>Staff Database</button>
+  <button class="nav-btn" id="nb-staff" onclick="go('pg-staff','nb-staff')"><span class="nav-icon">👥</span>Team Members</button>
   <div class="nav-divider"></div>
   <div class="nav-label">Teams</div>
   <button class="nav-btn" id="nb-bread" onclick="go('pg-bread','nb-bread')"><span class="nav-icon">🥖</span>Bread<span class="nav-badge" id="bd-bread">—</span></button>
@@ -296,7 +296,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
     </div>
   </div>
   <div class="stat-row">
-    <div class="stat" onclick="showWorkerModal('all')" style="cursor:pointer;"><div class="stat-val" id="ds-total">0</div><div class="stat-lbl">Total Workers</div></div>
+    <div class="stat" onclick="showWorkerModal('all')" style="cursor:pointer;"><div class="stat-val" id="ds-total">0</div><div class="stat-lbl">Total Members</div></div>
     <div class="stat s-green" onclick="showWorkerModal('green')" style="cursor:pointer;"><div class="stat-val" id="ds-asgn">0</div><div class="stat-lbl">Assigned ▸</div></div>
     <div class="stat s-yellow" onclick="showWorkerModal('yellow')" style="cursor:pointer;"><div class="stat-val" id="ds-avail">0</div><div class="stat-lbl">Available ▸</div></div>
     <div class="stat s-red" onclick="showWorkerModal('red')" style="cursor:pointer;"><div class="stat-val" id="ds-unavail">0</div><div class="stat-lbl">Unavailable ▸</div></div>
@@ -317,8 +317,8 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 <div class="page" id="pg-staff">
   <div class="flex-b">
     <div>
-      <div class="pg-title arch">Staff Database</div>
-      <div class="pg-sub">All 42 workers loaded. Set their team and mark unavailable each week as needed.</div>
+      <div class="pg-title arch">Team Members</div>
+      <div class="pg-sub">All 42 team members loaded. Set their team and mark unavailable each week as needed.</div>
     </div>
     <button class="btn btn-gold" onclick="addStaff()">+ Add Worker</button>
   </div>
@@ -329,7 +329,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
         <span class="dot yellow"></span><span style="font-size:12px;color:var(--muted);">Available</span>
         <span class="dot red"></span><span style="font-size:12px;color:var(--muted);">Unavailable</span>
       </div>
-      <span style="font-size:11px;color:var(--muted);" id="staff-count">42 workers</span>
+      <span style="font-size:11px;color:var(--muted);" id="staff-count">42 team members</span>
     </div>
     <div class="tbl-wrap">
       <table class="stbl">
@@ -405,12 +405,12 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
   <div class="flex-b">
     <div>
       <div class="pg-title arch">Master Summary</div>
-      <div class="pg-sub">Complete picture — all teams, all workers.</div>
+      <div class="pg-sub">Complete picture — all teams, all team members.</div>
     </div>
     <button class="btn btn-gold" onclick="downloadFilled()">⬇ Save Copy</button>
   </div>
   <div class="stat-row">
-    <div class="stat"><div class="stat-val" id="ss-total">0</div><div class="stat-lbl">Total Workers</div></div>
+    <div class="stat"><div class="stat-val" id="ss-total">0</div><div class="stat-lbl">Total Members</div></div>
     <div class="stat s-green"><div class="stat-val" id="ss-asgn">0</div><div class="stat-lbl">Assigned</div></div>
     <div class="stat s-yellow"><div class="stat-val" id="ss-avail">0</div><div class="stat-lbl">Available</div></div>
     <div class="stat s-red"><div class="stat-val" id="ss-unavail">0</div><div class="stat-lbl">Unavailable</div></div>
@@ -439,7 +439,7 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 <div class="bottom-nav">
   <div class="bnav-tabs">
     <button class="bnav-btn active" id="bn-dash" onclick="go('pg-dash','nb-dash','bn-dash')"><span class="bi">⚡</span>Dash</button>
-    <button class="bnav-btn" id="bn-staff" onclick="go('pg-staff','nb-staff','bn-staff')"><span class="bi">👥</span>Staff</button>
+    <button class="bnav-btn" id="bn-staff" onclick="go('pg-staff','nb-staff','bn-staff')"><span class="bi">👥</span>Members</button>
     <button class="bnav-btn" id="bn-bread" onclick="go('pg-bread','nb-bread','bn-bread')"><span class="bi">🥖</span>Bread<span class="bnav-badge" id="bb-bread">—</span></button>
     <button class="bnav-btn" id="bn-cold" onclick="go('pg-cold','nb-cold','bn-cold')"><span class="bi">🥪</span>Cold<span class="bnav-badge" id="bb-cold">—</span></button>
     <button class="bnav-btn" id="bn-hot" onclick="go('pg-hot','nb-hot','bn-hot')"><span class="bi">🍗</span>Hot<span class="bnav-badge" id="bb-hot">—</span></button>
@@ -727,7 +727,7 @@ function startLiveSync(){
       setLoadStatus('Data loaded — rendering…');
       try{
         if(!remote){
-          setLoadStatus('Empty DB — seeding 42 workers…');
+          setLoadStatus('Empty DB — seeding 42 team members…');
           S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
           S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
           fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
@@ -869,11 +869,15 @@ function workerStats(){
 
 function openPositions(){
   var o=0;
+  // A position is open only if empty string — N/A (__NA__) counts as filled
+  function isOpen(val){return !val||val==='';}
   Object.keys(TEAM_CFG).forEach(function(tk){
-    TEAM_CFG[tk].roles.forEach(function(r){if(!S.assign[r.key])o++;});
+    TEAM_CFG[tk].roles.forEach(function(r){if(isOpen(S.assign[r.key]))o++;});
   });
-  if(!S.assign['hot-coord'])o++;
-  S.meals.forEach(function(m){HOT_ROLES.forEach(function(r){if(!m.assign||!m.assign[r.k])o++;});});
+  if(isOpen(S.assign['hot-coord']))o++;
+  HOT_STATIONS.forEach(function(station){
+    station.slots.forEach(function(sl){if(isOpen(S.assign[sl.k]))o++;});
+  });
   return o;
 }
 
@@ -885,7 +889,9 @@ function renderStaffTable(){
   if(!tbody)return;
   var ids=assignedIds();
   tbody.innerHTML='';
-  S.staff.forEach(function(s,i){
+  // Sort alphabetically by name
+  var sorted=S.staff.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  sorted.forEach(function(s,i){
     var dot=staffDot(s);
     var tr=document.createElement('tr');
     // Team select
@@ -902,7 +908,7 @@ function renderStaffTable(){
     tbody.appendChild(tr);
   });
   var c=document.getElementById('staff-count');
-  if(c) c.textContent=S.staff.length+' workers';
+  if(c) c.textContent=S.staff.length+' team members';
 }
 
 function updateStaff(el){
@@ -980,7 +986,12 @@ function buildOpts(selId){
     return '<option value="'+s.id+'"'+(s.id===selId?' selected':'')+'>'+dot+' '+esc(s.name)+note+'</option>';
   }
 
-  var h='<option value="">— Unassigned —</option>';
+  green.sort(function(a,b){return a.name.localeCompare(b.name);});
+  yellow.sort(function(a,b){return a.name.localeCompare(b.name);});
+  red.sort(function(a,b){return a.name.localeCompare(b.name);});
+
+  var h='<option value="">— Unassigned —</option>'+
+        '<option value="__NA__"'+(selId==='__NA__'?' selected':'')+'>⬛ N/A — Not Needed This Week</option>';
 
   if(yellow.length){
     h+='<optgroup label="🟡 Available — Not Yet Assigned">';
@@ -1005,6 +1016,8 @@ function colorSel(sel){
   var v=sel.value;
   sel.className='';
   if(!v) return;
+  if(v==='__NA__'){sel.style.borderColor='var(--border2)';sel.style.background='rgba(42,59,90,.3)';return;}
+  sel.style.borderColor='';sel.style.background='';
   var s=S.staff.find(function(x){return x.id===v;});
   if(!s) return;
   var d=staffDot(s);
@@ -1447,12 +1460,12 @@ function updateBadges(){
 
 // Force reset — wipes Firebase and reseeds all 42 workers
 function forceResetDB(){
-  if(!confirm('This will WIPE the database and reload all 42 workers fresh. All assignments will be lost. Continue?'))return;
+  if(!confirm('This will WIPE the database and reload all 42 team members fresh. All assignments will be lost. Continue?'))return;
   S={staff:[],assign:{},meals:[],tasks:[],done:{},notes:{},chk:{},fields:{}};
   S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
   S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
   fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)})
-    .then(function(){toast('✅ Database reset — 42 workers loaded');reRenderActive();})
+    .then(function(){toast('✅ Database reset — 42 team members loaded');reRenderActive();})
     .catch(function(){toast('⚠ Reset failed — check connection');});
 }
 
@@ -1505,7 +1518,7 @@ function renderSummary(){
   // ── Full Staff List: sorted green → yellow → red, with all roles ──
   var sf=document.getElementById('sum-staff');
   if(sf){sf.innerHTML='';
-    if(!S.staff.length){sf.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0;">No workers in database.</div>';return;}
+    if(!S.staff.length){sf.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0;">No team members in database.</div>';return;}
 
     // Build a map of staffId → list of role strings
     var roleMap={};
@@ -1586,15 +1599,26 @@ function downloadFilled(){
   toast('Saved copy downloaded');
 }
 
+function nextSabbathDate(){
+  var now=new Date();
+  var day=now.getDay();
+  var daysUntilSat=day===6?7:(6-day);
+  var next=new Date(now.getTime()+daysUntilSat*24*60*60*1000);
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[next.getMonth()]+' '+next.getDate()+', '+next.getFullYear();
+}
+
 function clearWeek(){
   if(!confirm('Start a new week? Assignments, meal stations, tasks, and completion status will be cleared. Staff database is kept.'))return;
-  S.assign={};S.meals=[];S.done={};S.notes={};S.chk={};
-  S.fields['hdr-date']='';S.fields['hdr-menu']='';
+  S.assign={};S.meals=[];S.done={};S.notes={};S.chk={};S.stationNames={};
+  var nextDate=nextSabbathDate();
+  S.fields['hdr-date']=nextDate;
+  S.fields['hdr-menu']='';
   S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
-  var d=document.getElementById('hdr-date');if(d)d.value='';
+  var d=document.getElementById('hdr-date');if(d)d.value=nextDate;
   var m=document.getElementById('hdr-menu');if(m)m.value='';
   fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)})
-    .then(function(){toast('✅ New week started — synced to all devices');reRenderActive();})
+    .then(function(){toast('✅ New week — Sabbath: '+nextDate);reRenderActive();})
     .catch(function(){toast('⚠ Save failed — check connection');});
   go('pg-dash','nb-dash','bn-dash');
 }
