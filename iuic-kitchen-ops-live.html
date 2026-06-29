@@ -972,11 +972,7 @@ function renderStaffTable(){
   tbody.innerHTML='';
   // Sort alphabetically by name
   var sorted=S.staff.slice().sort(function(a,b){
-    function fn(name){
-      var n=name.replace(/^(Officer|Brother|Sister|Soldier|Captain|Bishop)\s+/i,'');
-      return n.split(' ')[0].toLowerCase();
-    }
-    return fn(a.name).localeCompare(fn(b.name));
+    return firstName(a.name).localeCompare(firstName(b.name));
   });
   sorted.forEach(function(s,i){
     var dot=staffDot(s);
@@ -1048,72 +1044,65 @@ function removeStaff(id){
 // Green (assigned) → Yellow (available) → Red (unavailable)
 // selId = currently selected staff id (any string or '')
 // ══════════════════════════════════════════════════════════
-function buildOpts(selId){
+var TEAM_LABEL_MAP={
+  bread:'Bread',cold:'Cold Foods',hot:'Hot Foods',
+  bev:'Beverage',lead:'Leadership Meals',clean:'Cleaning',grill:'Grill Team'
+};
+// Teams that can pull from anyone
+var OPEN_TEAMS={hot:true,cold:true};
+
+function firstName(name){
+  var n=name.replace(/^(Officer|Brother|Sister|Soldier|Captain|Bishop)\s+/i,'');
+  return n.split(' ')[0].toLowerCase();
+}
+
+function buildOpts(selId,teamKey){
   var ids=assignedIds();
+  var myLabel=teamKey?TEAM_LABEL_MAP[teamKey]:null;
+  var isOpen=!teamKey||OPEN_TEAMS[teamKey];
 
-  // Categorise every worker
-  var green=[], yellow=[], red=[];
-  S.staff.forEach(function(s){
-    if(s.avail==='no'){
-      red.push(s);
-    } else if(ids[s.id] && s.id!==selId){
-      green.push(s);   // assigned elsewhere
-    } else {
-      yellow.push(s);  // available, not yet assigned
-    }
-  });
-
-  // If this dropdown already has someone selected, they show in yellow pool
-  // (already filtered above because s.id===selId excluded from green)
-
+  function dot(s){
+    if(s.avail==='no')return '🔴';
+    if(ids[s.id]&&s.id!==selId)return '🟢';
+    return '🟡';
+  }
   function opt(s){
-    var inGreen=ids[s.id]&&s.id!==selId;
-    var dot=s.avail==='no'?'🔴':inGreen?'🟢':'🟡';
-    var note=s.avail==='no'?' — unavailable':inGreen?' — assigned':'';
-    return '<option value="'+s.id+'"'+(s.id===selId?' selected':'')+'>'+dot+' '+esc(s.name)+note+'</option>';
+    var note=s.avail==='no'?' — unavailable':(ids[s.id]&&s.id!==selId)?' — assigned':'';
+    return '<option value="'+s.id+'"'+(s.id===selId?' selected':'')+'>'+dot(s)+' '+esc(s.name)+note+'</option>';
   }
-
-  function firstName(name){
-    // Strip rank titles then get first word
-    var n=name.replace(/^(Officer|Brother|Sister|Soldier|Captain|Bishop)\s+/i,'');
-    return n.split(' ')[0].toLowerCase();
-  }
-  green.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
-  yellow.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
-  red.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});
+  function srt(arr){return arr.sort(function(a,b){return firstName(a.name).localeCompare(firstName(b.name));});}
 
   var h='<option value="">— Unassigned —</option>'+
         '<option value="__NA__"'+(selId==='__NA__'?' selected':'')+'>⬛ N/A — Not Needed This Week</option>';
 
-  if(yellow.length){
-    h+='<optgroup label="🟡 Available — Not Yet Assigned">';
-    yellow.forEach(function(s){h+=opt(s);});
-    h+='</optgroup>';
+  if(myLabel&&!isOpen){
+    // Restricted — only show this team's members
+    var myAvail=srt(S.staff.filter(function(s){return s.team===myLabel&&s.avail!=='no'&&(!ids[s.id]||s.id===selId);}));
+    var myAsgn=srt(S.staff.filter(function(s){return s.team===myLabel&&s.avail!=='no'&&ids[s.id]&&s.id!==selId;}));
+    var myUna=srt(S.staff.filter(function(s){return s.team===myLabel&&s.avail==='no';}));
+    if(myAvail.length){h+='<optgroup label="🟡 '+myLabel+' — Available">';myAvail.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
+    if(myAsgn.length){h+='<optgroup label="🟢 '+myLabel+' — Already Assigned">';myAsgn.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
+    if(myUna.length){h+='<optgroup label="🔴 '+myLabel+' — Unavailable">';myUna.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
+  } else {
+    // Open — show all members
+    var yellow=srt(S.staff.filter(function(s){return s.avail!=='no'&&(!ids[s.id]||s.id===selId);}));
+    var green=srt(S.staff.filter(function(s){return s.avail!=='no'&&ids[s.id]&&s.id!==selId;}));
+    var red=srt(S.staff.filter(function(s){return s.avail==='no';}));
+    if(yellow.length){h+='<optgroup label="🟡 Available">';yellow.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
+    if(green.length){h+='<optgroup label="🟢 Already Assigned">';green.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
+    if(red.length){h+='<optgroup label="🔴 Unavailable">';red.forEach(function(s){h+=opt(s);});h+='</optgroup>';}
   }
-  if(green.length){
-    h+='<optgroup label="🟢 Already Assigned Elsewhere">';
-    green.forEach(function(s){h+=opt(s);});
-    h+='</optgroup>';
-  }
-  if(red.length){
-    h+='<optgroup label="🔴 Unavailable This Sabbath">';
-    red.forEach(function(s){h+=opt(s);});
-    h+='</optgroup>';
-  }
-
   return h;
 }
 
 function colorSel(sel){
   var v=sel.value;
-  sel.className='';
-  if(!v) return;
+  sel.className='';sel.style.borderColor='';sel.style.background='';
+  if(!v)return;
   if(v==='__NA__'){sel.style.borderColor='var(--border2)';sel.style.background='rgba(42,59,90,.3)';return;}
-  sel.style.borderColor='';sel.style.background='';
   var s=S.staff.find(function(x){return x.id===v;});
-  if(!s) return;
-  var d=staffDot(s);
-  sel.className='s-'+d;
+  if(!s)return;
+  sel.className='s-'+staffDot(s);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1142,7 +1131,7 @@ function renderTeam(tk){
   cfg.roles.forEach(function(r){
     var cur=S.assign[r.key]||'';
     h+='<tr><td><div class="role-lbl">'+r.lbl+'</div>'+(r.desc?'<div class="role-desc">'+r.desc+'</div>':'')+'</td>'+
-       '<td><select onchange="setAsgn(\''+tk+'\',\''+r.key+'\',this.value,this)">'+buildOpts(cur)+'</select></td></tr>';
+       '<td><select onchange="setAsgn(\''+tk+'\',\''+r.key+'\',this.value,this)">'+buildOpts(cur,tk)+'</select></td></tr>';
   });
   h+='</tbody></table>';
   c2.innerHTML=h;
@@ -1242,7 +1231,7 @@ function renderHot(){
   c2.innerHTML='<div class="card-title">Coordinator</div>'+
     '<table class="asgn-tbl"><thead><tr><th>Position</th><th>Assigned Worker</th></tr></thead><tbody>'+
     '<tr><td><div class="role-lbl">Hot Foods Coordinator</div><div class="role-desc">Team lead</div></td>'+
-    '<td><select onchange="setAsgnHotCoord(this.value,this)">'+buildOpts(cur)+'</select></td></tr>'+
+    '<td><select onchange="setAsgnHotCoord(this.value,this)">'+buildOpts(cur,'hot')+'</select></td></tr>'+
     '</tbody></table>';
   el.appendChild(c2);
   c2.querySelectorAll('select').forEach(colorSel);
@@ -1277,7 +1266,7 @@ function renderHot(){
     station.slots.forEach(function(sl){
       var cv=S.assign[sl.k]||'';
       sh+='<tr><td class="role-lbl">'+sl.l+'</td>'+
-          '<td><select onchange="setAsgnSlot(\''+sl.k+'\',this.value,this)">'+buildOpts(cv)+'</select></td></tr>';
+          '<td><select onchange="setAsgnSlot(\''+sl.k+'\',this.value,this)">'+buildOpts(cv,'hot')+'</select></td></tr>';
     });
     sh+='</tbody></table>';
     sc.innerHTML=sh;el.appendChild(sc);
