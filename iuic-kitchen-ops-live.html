@@ -525,21 +525,51 @@ select.av-no{border-color:var(--red)!important;background:var(--red-bg)!importan
 // DATA
 // ══════════════════════════════════════════════════════════
 var DEFAULT_STAFF_LIST = [
-  'Lakiera (H/O Ofc Tobiel)','Laura','Amaiya','Officer Sha\'cal','Hadassah',
-  'Akima (H/O Ofc Mishael)','Judea (H/O Ofc Azriel)','Oseia (H/O Ofc Ananias)',
-  'Officer Mikhael','Officer Ananias','Lois (H/O Bro Nerias)',
-  'Rickel (H/O Ofc Yeremiah)','Ricaiah (H/O Ofc Yeremiah)','Brother Marc',
-  'Soldier Esaias','Atarah (H/O Ofc Mikhael)','Soldier Tamir',
-  'Avigail (H/O Ofc Markon)','Damaris (H/O Sol Gabriel)','Chana',
-  'Elisheeva (H/O Soldier Onias)','Makayla','Ayah','Aliyah',
-  'Tehilla (H/O Ofc Asa)','Niyaah','Ja\'el (H/O Captain Nashon)','Esther',
-  'Zuri (H/O Ofc O\'shea)','Malyah','Yahyana','Yasmin (H/O Bishop Yawasap)',
-  'Emzara (H/O Ofc Isaiah)','Febe (D/O Bro Isaac)','Brother Azziah','Lily',
-  'Judea (H/O Ofc Yechiel)','Zehavya (H/O Brother James Judah)',
-  'Moriah (H/O Ofc Yechiel)','Brother David','Sister Ahrayel','Sister Chayill'
+  {name:"Lakiera (H/O Ofc Tobiel)",     team:"Hot Foods"},
+  {name:"Laura",                          team:"Cleaning"},
+  {name:"Amaiya",                         team:"Cleaning"},
+  {name:"Officer Sha'cal",               team:"Grill Team"},
+  {name:"Hadassah",                       team:"Cleaning"},
+  {name:"Akima (H/O Ofc Mishael)",       team:"General"},
+  {name:"Judea (H/O Ofc Azriel)",        team:"General"},
+  {name:"Oseia (H/O Ofc Ananias)",       team:"Cold Foods"},
+  {name:"Officer Mikhael",               team:"General"},
+  {name:"Officer Ananias",               team:"Grill Team"},
+  {name:"Lois (H/O Bro Nerias)",         team:"Cleaning"},
+  {name:"Rickel (H/O Ofc Yeremiah)",     team:"General"},
+  {name:"Ricaiah (H/O Ofc Yeremiah)",    team:"Beverage"},
+  {name:"Brother Marc",                  team:"Grill Team"},
+  {name:"Soldier Esaias",               team:"Grill Team"},
+  {name:"Atarah (H/O Ofc Mikhael)",     team:"Cold Foods"},
+  {name:"Soldier Tamir",                team:"Grill Team"},
+  {name:"Avigail (H/O Ofc Markon)",     team:"Leadership Meals"},
+  {name:"Damaris (H/O Sol Gabriel)",    team:"Cold Foods"},
+  {name:"Chana",                         team:"Hot Foods"},
+  {name:"Elisheeva (H/O Soldier Onias)",team:"Cleaning"},
+  {name:"Makayla",                       team:"Hot Foods"},
+  {name:"Ayah",                          team:"Hot Foods"},
+  {name:"Aliyah",                        team:"Bread"},
+  {name:"Tehilla (H/O Ofc Asa)",        team:"Bread"},
+  {name:"Niyaah",                        team:"Beverage"},
+  {name:"Ja'el (H/O Captain Nashon)",   team:"Bread"},
+  {name:"Esther",                        team:"Beverage"},
+  {name:"Zuri (H/O Ofc O'shea)",        team:"Cold Foods"},
+  {name:"Malyah",                        team:"General"},
+  {name:"Yahyana",                       team:"General"},
+  {name:"Yasmin (H/O Bishop Yawasap)",  team:"Leadership Meals"},
+  {name:"Emzara (H/O Ofc Isaiah)",      team:"Cold Foods"},
+  {name:"Febe (D/O Bro Isaac)",         team:"Bread"},
+  {name:"Brother Azziah",               team:"Grill Team"},
+  {name:"Lily",                          team:"Hot Foods"},
+  {name:"Judea (H/O Ofc Yechiel)",      team:"Bread"},
+  {name:"Zehavya (H/O Brother James Judah)", team:"General"},
+  {name:"Moriah (H/O Ofc Yechiel)",     team:"Hot Foods"},
+  {name:"Brother David",                team:"Grill Team"},
+  {name:"Sister Ahrayel",               team:"Cleaning"},
+  {name:"Sister Chayill",               team:"Cleaning"}
 ];
 
-var TEAM_OPTS = ['Bread','Cold Foods','Hot Foods','Beverage','Leadership Meals','Cleaning','General'];
+var TEAM_OPTS = ['Bread','Cold Foods','Hot Foods','Beverage','Leadership Meals','Cleaning','Grill Team','General'];
 
 var TEAM_CFG = {
   bread:{label:'Bread Team',emoji:'🥖',
@@ -777,7 +807,7 @@ function startLiveSync(){
       try{
         if(!remote){
           setLoadStatus('Empty DB — seeding 42 team members…');
-          S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
+          S.staff=DEFAULT_STAFF_LIST.map(function(s){return{id:uid(),name:s.name,team:s.team,avail:'yes'};});
           S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
           fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
         } else {
@@ -1223,15 +1253,24 @@ function renderHot(){
     var sc=document.createElement('div');sc.className='card';
     var hasDishName=station.key==='hot-opt1'||station.key==='hot-opt2'||station.key==='hot-alac';
     var dishName=S.stationNames[station.key]||'';
+    var cookName=S.stationNames[station.key+'-cook']||'';
     var dishField=hasDishName
-      ?'<div style="margin-bottom:10px;">'+
-          '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Dish / Item Being Served</div>'+
-          '<input type="text" value="'+esc(dishName)+'" placeholder="Type dish here" '+
-          'onblur="setStationName(\''+station.key+'\',this.value)" '+
-          'style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--gold2);font-family:\'Inter\',sans-serif;font-weight:600;font-size:13px;padding:7px 10px;width:100%;">'+
+      ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">'+
+          '<div>'+
+            '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Dish / Item Being Served</div>'+
+            '<input type="text" value="'+esc(dishName)+'" placeholder="Type dish here" '+
+            'onblur="setStationName(\''+station.key+'\',this.value)" '+
+            'style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--gold2);font-family:\'Inter\',sans-serif;font-weight:600;font-size:13px;padding:7px 10px;width:100%;">'+
+          '</div>'+
+          '<div>'+
+            '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Cook Name</div>'+
+            '<input type="text" value="'+esc(cookName)+'" placeholder="Who is cooking?" '+
+            'onblur="setStationName(\''+station.key+'-cook\',this.value)" '+
+            'style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--white);font-family:\'Inter\',sans-serif;font-weight:600;font-size:13px;padding:7px 10px;width:100%;">'+
+          '</div>'+
         '</div>'
       :'';
-    var displayLabel=station.label+(dishName?' — '+dishName:'');
+    var displayLabel=station.label+(dishName?' — '+dishName:'')+(cookName?' (Cook: '+cookName+')':'');
     var sh='<div class="card-title">'+esc(displayLabel)+' <span style="font-weight:400;color:var(--muted);">'+asgnCount+'/'+station.slots.length+' assigned</span></div>'+
       dishField+
       '<table class="asgn-tbl"><thead><tr><th>Role</th><th>Assigned Worker</th></tr></thead><tbody>';
@@ -1541,7 +1580,7 @@ function updateBadges(){
 function forceResetDB(){
   if(!confirm('This will WIPE the database and reload all 42 team members fresh. All assignments will be lost. Continue?'))return;
   S={staff:[],assign:{},meals:[],tasks:[],done:{},notes:{},chk:{},fields:{}};
-  S.staff=DEFAULT_STAFF_LIST.map(function(n){return{id:uid(),name:n,team:'General',avail:'yes'};});
+  S.staff=DEFAULT_STAFF_LIST.map(function(s){return{id:uid(),name:s.name,team:s.team,avail:'yes'};});
   S.tasks=DEFAULT_TASKS.map(function(t){return{id:uid(),name:t.name,worker:'',time:t.time,done:false};});
   fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)})
     .then(function(){toast('✅ Database reset — 42 team members loaded');reRenderActive();})
