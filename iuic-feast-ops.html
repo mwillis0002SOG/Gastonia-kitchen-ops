@@ -826,6 +826,8 @@ function assignedIds(){
   Object.values(S.extras||{}).forEach(function(arr){(arr||[]).forEach(function(ex){if(ex.assignId)out[ex.assignId]=true;});});
   return out;
 }
+function isFilled(v){return !!v && v!=='__NA__';}
+
 function staffDot(s){
   if(s.avail==='no')return 'red';
   if(assignedIds()[s.id])return 'green';
@@ -1168,24 +1170,24 @@ function renderDash(){
     {key:'setup',lbl:'Setup',em:'🔧',asgn:0,tot:SETUP_LINES.reduce(function(a,l){return a+l.slots;},0)+SETUP_FOOD_SLOTS},
     {key:'clean',lbl:'Cleaning Team',em:'🧹',asgn:0,tot:CLEAN_ROLES.length},
   ];
-  teams[0].asgn=(S.assign['meal-lead']?1:0);
-  MEAL_CATEGORIES.forEach(function(cat){teams[0].asgn+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!=='';}).length;});
-  GRILL_STATIONS.forEach(function(st){if(S.grillAssign[st.key])teams[0].asgn++;});
+  teams[0].asgn=(isFilled(S.assign['meal-lead'])?1:0);
+  MEAL_CATEGORIES.forEach(function(cat){teams[0].asgn+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;});
+  GRILL_STATIONS.forEach(function(st){if(isFilled(S.grillAssign[st.key]))teams[0].asgn++;});
   teams[0].tot=1+MEAL_CATEGORIES.reduce(function(a,c){return a+c.slots;},0)+GRILL_STATIONS.length;
-  teams[1].asgn=(S.assign['bread-lead']?1:0)+(S.assign['bread-asst']?1:0);
-  teams[2].asgn=BEV_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  teams[1].asgn=(isFilled(S.assign['bread-lead'])?1:0)+(isFilled(S.assign['bread-asst'])?1:0);
+  teams[2].asgn=BEV_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   SERVING_LINES.forEach(function(line){
     SERVING_SHIFTS.forEach(function(sh){
       var arr=S.servingAssign[line.key+'-'+sh.key]||[];
-      teams[3].asgn+=arr.filter(function(v){return v&&v!=='';}).length;
+      teams[3].asgn+=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     });
   });
   SETUP_LINES.forEach(function(line){
     var arr=S.setupAssign[line.key]||[];
-    teams[4].asgn+=arr.filter(function(v){return v&&v!=='';}).length;
+    teams[4].asgn+=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
   });
-  teams[4].asgn+=(S.setupAssign['food-warm']||[]).filter(function(v){return v&&v!=='';}).length;
-  teams[5].asgn=CLEAN_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  teams[4].asgn+=(S.setupAssign['food-warm']||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
+  teams[5].asgn=CLEAN_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
 
   var grid=document.createElement('div');
   grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:12px;';
@@ -1236,7 +1238,7 @@ function renderMeal(){
 
   MEAL_CATEGORIES.forEach(function(cat){
     var assignedArr=S.mealAssign[cat.key]||[];
-    var filled=assignedArr.filter(function(v){return v&&v!=='';}).length;
+    var filled=assignedArr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     var dishVal=S.dishNames[cat.key]||'';
     var cc=document.createElement('div');cc.className='card';
     var ch='<div class="card-title">'+cat.label+' — '+filled+'/'+cat.slots+' Assigned</div>'+
@@ -1318,7 +1320,7 @@ function renderBread(){
     {key:'bread-lead',lbl:'Bread Lead',desc:'Primary handler'},
     {key:'bread-asst',lbl:'Assistant',desc:''},
   ];
-  var asgn=roles.filter(function(r){return!!S.assign[r.key];}).length;
+  var asgn=roles.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   var c2=document.createElement('div');c2.className='card';
   var h='<div class="card-title">Positions — '+asgn+' / '+roles.length+' Assigned</div>'+
     '<table class="asgn-tbl"><thead><tr><th>Position</th><th>Assigned Member</th></tr></thead><tbody>';
@@ -1351,7 +1353,7 @@ function renderBev(){
     '<textarea class="notes-ta" placeholder="Beverage team notes…" onchange="S.notes.bev=this.value;save()">'+esc(S.notes.bev||'')+'</textarea>';
   el.appendChild(c1);
 
-  var asgn=BEV_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  var asgn=BEV_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   var c2=document.createElement('div');c2.className='card';
   var h='<div class="card-title">Positions — '+asgn+' / '+BEV_ROLES.length+' Assigned</div>'+
     '<table class="asgn-tbl"><thead><tr><th>Position</th><th>Assigned Member</th></tr></thead><tbody>';
@@ -1389,7 +1391,7 @@ function renderServe(){
     SERVING_SHIFTS.forEach(function(sh){
       var arr=S.servingAssign[line.key+'-'+sh.key]||[];
       lineTot+=SERVING_SLOTS;
-      lineAsgn+=arr.filter(function(v){return v&&v!=='';}).length;
+      lineAsgn+=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     });
 
     var lc=document.createElement('div');lc.className='card';
@@ -1454,7 +1456,7 @@ function renderSetup(){
   // 2 members per line — handles tables, tablecloths, chafing dishes/sternos, tongs & spoons together
   SETUP_LINES.forEach(function(line){
     var arr=S.setupAssign[line.key]||[];
-    var lineAsgn=arr.filter(function(v){return v&&v!=='';}).length;
+    var lineAsgn=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
 
     var lc=document.createElement('div');lc.className='card';
     var lh='<div class="card-title">'+line.label+' — '+lineAsgn+'/'+line.slots+' Assigned</div>'+
@@ -1471,7 +1473,7 @@ function renderSetup(){
 
   // Whole-event task: Food Reheating
   var foodArr=S.setupAssign['food-warm']||[];
-  var foodAsgn=foodArr.filter(function(v){return v&&v!=='';}).length;
+  var foodAsgn=foodArr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
   var fc=document.createElement('div');fc.className='card';
   var fh='<div class="card-title">Food Set Out & Reheated — '+foodAsgn+'/'+SETUP_FOOD_SLOTS+' Assigned</div>'+
     '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Whole-event task — not split by serving line.</div>'+
@@ -1514,7 +1516,7 @@ function renderClean(){
     '<textarea class="notes-ta" placeholder="Cleaning team notes…" onchange="S.notes.clean=this.value;save()">'+esc(S.notes.clean||'')+'</textarea>';
   el.appendChild(c1);
 
-  var asgn=CLEAN_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  var asgn=CLEAN_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   var c2=document.createElement('div');c2.className='card';
   var h='<div class="card-title">Positions — '+asgn+' / '+CLEAN_ROLES.length+' Assigned</div>'+
     '<table class="asgn-tbl"><thead><tr><th>Position</th><th>Assigned Member</th></tr></thead><tbody>';
@@ -1614,18 +1616,18 @@ function setExtraAsgn(tk,exId,staffId,sel){
 }
 
 function updateBadges(){
-  var breadAsgn=(S.assign['bread-lead']?1:0)+(S.assign['bread-asst']?1:0);
+  var breadAsgn=(isFilled(S.assign['bread-lead'])?1:0)+(isFilled(S.assign['bread-asst'])?1:0);
   setBadge('bread',breadAsgn,2,S.done.bread);
-  var cleanAsgn=CLEAN_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  var cleanAsgn=CLEAN_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   setBadge('clean',cleanAsgn,CLEAN_ROLES.length,S.done.clean);
-  var bevAsgn=BEV_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+  var bevAsgn=BEV_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
   setBadge('bev',bevAsgn,BEV_ROLES.length,S.done.bev);
   var serveAsgn=0,serveTot=0;
   SERVING_LINES.forEach(function(line){
     SERVING_SHIFTS.forEach(function(sh){
       var arr=S.servingAssign[line.key+'-'+sh.key]||[];
       serveTot+=SERVING_SLOTS;
-      serveAsgn+=arr.filter(function(v){return v&&v!=='';}).length;
+      serveAsgn+=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     });
   });
   setBadge('serve',serveAsgn,serveTot,S.done.serve);
@@ -1633,17 +1635,17 @@ function updateBadges(){
   SETUP_LINES.forEach(function(line){
     var arr=S.setupAssign[line.key]||[];
     setupTot+=line.slots;
-    setupAsgn+=arr.filter(function(v){return v&&v!=='';}).length;
+    setupAsgn+=arr.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
   });
   var foodArr2=S.setupAssign['food-warm']||[];
   setupTot+=SETUP_FOOD_SLOTS;
-  setupAsgn+=foodArr2.filter(function(v){return v&&v!=='';}).length;
+  setupAsgn+=foodArr2.filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
   setBadge('setup',setupAsgn,setupTot,S.done.setup);
-  var mealAsgn=(S.assign['meal-lead']?1:0);
+  var mealAsgn=(isFilled(S.assign['meal-lead'])?1:0);
   MEAL_CATEGORIES.forEach(function(cat){
-    mealAsgn+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!=='';}).length;
+    mealAsgn+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
   });
-  GRILL_STATIONS.forEach(function(st){if(S.grillAssign[st.key])mealAsgn++;});
+  GRILL_STATIONS.forEach(function(st){if(isFilled(S.grillAssign[st.key]))mealAsgn++;});
   var mealTot=1+MEAL_CATEGORIES.reduce(function(a,c){return a+c.slots;},0)+GRILL_STATIONS.length;
   setBadge('meal',mealAsgn,mealTot,S.done.meal);
 }
@@ -1701,26 +1703,26 @@ function renderSummary(){
   var te=document.getElementById('sum-teams');
   if(te){
     te.innerHTML='';
-    var mealAsgnCount=(S.assign['meal-lead']?1:0);
-    MEAL_CATEGORIES.forEach(function(cat){mealAsgnCount+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!=='';}).length;});
-    GRILL_STATIONS.forEach(function(st){if(S.grillAssign[st.key])mealAsgnCount++;});
+    var mealAsgnCount=(isFilled(S.assign['meal-lead'])?1:0);
+    MEAL_CATEGORIES.forEach(function(cat){mealAsgnCount+=(S.mealAssign[cat.key]||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;});
+    GRILL_STATIONS.forEach(function(st){if(isFilled(S.grillAssign[st.key]))mealAsgnCount++;});
     var mealTotCount=1+MEAL_CATEGORIES.reduce(function(a,c){return a+c.slots;},0)+GRILL_STATIONS.length;
 
-    var breadAsgnCount=(S.assign['bread-lead']?1:0)+(S.assign['bread-asst']?1:0);
-    var bevAsgnCount=BEV_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+    var breadAsgnCount=(isFilled(S.assign['bread-lead'])?1:0)+(isFilled(S.assign['bread-asst'])?1:0);
+    var bevAsgnCount=BEV_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
 
     var serveAsgnCount=0,serveTotCount=SERVING_LINES.length*SERVING_SHIFTS.length*SERVING_SLOTS;
     SERVING_LINES.forEach(function(line){SERVING_SHIFTS.forEach(function(sh){
-      serveAsgnCount+=(S.servingAssign[line.key+'-'+sh.key]||[]).filter(function(v){return v&&v!=='';}).length;
+      serveAsgnCount+=(S.servingAssign[line.key+'-'+sh.key]||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     });});
 
     var setupAsgnCount=0,setupTotCount=SETUP_LINES.reduce(function(a,l){return a+l.slots;},0)+SETUP_FOOD_SLOTS;
     SETUP_LINES.forEach(function(line){
-      setupAsgnCount+=(S.setupAssign[line.key]||[]).filter(function(v){return v&&v!=='';}).length;
+      setupAsgnCount+=(S.setupAssign[line.key]||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
     });
-    setupAsgnCount+=(S.setupAssign['food-warm']||[]).filter(function(v){return v&&v!=='';}).length;
+    setupAsgnCount+=(S.setupAssign['food-warm']||[]).filter(function(v){return v&&v!==''&&v!=='__NA__';}).length;
 
-    var cleanAsgnCount=CLEAN_ROLES.filter(function(r){return!!S.assign[r.key];}).length;
+    var cleanAsgnCount=CLEAN_ROLES.filter(function(r){return(S.assign[r.key]&&S.assign[r.key]!=='__NA__');}).length;
 
     var teamsData=[
       {key:'meal',lbl:'Meal Planning',em:'🍽',a:mealAsgnCount,t:mealTotCount},
