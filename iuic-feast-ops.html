@@ -1033,7 +1033,7 @@ function memberRoles(sid){
 
   add(S.assign['meal-lead'],'Meal Planning — Lead Coordinator');
   MEAL_CATEGORIES.forEach(function(cat){
-    (S.mealAssign[cat.key]||[]).forEach(function(v,i){add(v,'Meal Planning — '+cat.label+' Member '+(i+1));});
+    (S.mealAssign[cat.key]||[]).forEach(function(v,i){add(v,cat.label+' Cook '+(i+1));});
   });
   GRILL_STATIONS.forEach(function(st){add(S.grillAssign[st.key],'Meal Planning — '+st.label);});
   add(S.assign['bread-lead'],'Bread Team — Bread Lead');
@@ -1245,7 +1245,7 @@ function renderMeal(){
       '<table class="asgn-tbl"><thead><tr><th>Slot</th><th>Assigned Member</th></tr></thead><tbody>';
     for(var i=0;i<cat.slots;i++){
       var cv=assignedArr[i]||'';
-      ch+='<tr><td class="role-lbl">'+cat.label+' — Member '+(i+1)+'</td>'+
+      ch+='<tr><td class="role-lbl">'+cat.label+' Cook '+(i+1)+'</td>'+
           '<td>'+pickerTrigger(cv,'setMealAsgn',[cat.key,i])+'</td></tr>';
     }
     ch+='</tbody></table>';
@@ -1772,7 +1772,7 @@ function renderSummary(){
 
     addRole(S.assign['meal-lead'],'Meal Planning — Lead Coordinator');
     MEAL_CATEGORIES.forEach(function(cat){
-      (S.mealAssign[cat.key]||[]).forEach(function(sid,i){addRole(sid,'Meal Planning — '+cat.label+' Member '+(i+1));});
+      (S.mealAssign[cat.key]||[]).forEach(function(sid,i){addRole(sid,cat.label+' Cook '+(i+1));});
     });
     GRILL_STATIONS.forEach(function(st){addRole(S.grillAssign[st.key],'Meal Planning — '+st.label);});
     addRole(S.assign['bread-lead'],'Bread Team — Bread Lead');
